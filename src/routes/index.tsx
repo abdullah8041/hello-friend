@@ -181,9 +181,13 @@ function Index() {
         </div>
       </header>
 
-      {/* Leaderboard ad */}
-      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
-        <AdSlot label="Advertisement" className="h-20 sm:h-24" />
+      {/* Leaderboard ad (728x90) */}
+      <div className="mx-auto flex max-w-6xl justify-center px-4 pt-4 pb-2 sm:px-6">
+        <AdsterraBanner
+          adKey="f66a3fd785f423794a373d945ccde044"
+          width={728}
+          height={90}
+        />
       </div>
 
       {/* Hero */}
