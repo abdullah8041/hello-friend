@@ -181,8 +181,8 @@ function Index() {
         </div>
       </header>
 
-      {/* Leaderboard ad (728x90) */}
-      <div className="mx-auto flex max-w-6xl justify-center px-4 pt-4 pb-2 sm:px-6">
+      {/* Leaderboard ad (728x90) — hidden below sm to avoid overflow */}
+      <div className="mx-auto hidden w-full max-w-6xl justify-center px-4 pt-4 pb-2 sm:flex sm:px-6">
         <AdsterraBanner
           adKey="f66a3fd785f423794a373d945ccde044"
           width={728}
@@ -287,7 +287,7 @@ function Index() {
         </div>
 
         {/* Square banner ad (300x250) */}
-        <div className="mx-auto mt-10 flex max-w-md justify-center">
+        <div className="mt-12 mb-8 flex w-full justify-center">
           <AdsterraBanner
             adKey="b6201d0496c5f76bab79474d1dc24961"
             width={300}
@@ -336,16 +336,9 @@ function Index() {
         </div>
       </section>
 
-      <footer className="border-t border-border/60 px-4 py-8 pb-24 text-center text-xs text-muted-foreground sm:px-6">
+      <footer className="border-t border-border/60 px-4 py-8 text-center text-xs text-muted-foreground sm:px-6">
         © {new Date().getFullYear()} SnapFetch. For personal use only. Respect content creators and platform terms.
       </footer>
-
-      {/* Sticky anchor ad */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/80 px-3 py-2 backdrop-blur-xl">
-        <div className="mx-auto max-w-6xl">
-          <AdSlot label="Advertisement" className="h-14 sm:h-16" compact />
-        </div>
-      </div>
     </div>
   );
 }
