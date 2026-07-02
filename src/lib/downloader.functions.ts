@@ -79,7 +79,7 @@ function buildApiRequests(url: string): ApiRequest[] {
 
   const endpointMap: Record<Exclude<SupportedService, "youtube" | "instagram">, string[]> = {
     tiktok: ["/api/tiktok/download"],
-    facebook: ["/api/facebook/download"],
+    facebook: ["/api/facebook/download", "/api/facebook/v1/download"],
     twitter: ["/api/twitter/download", "/api/x/download"],
   };
 
@@ -272,39 +272,57 @@ export const fetchVideo = createServerFn({ method: "POST" })
 
     for (const request of requests) {
       const requestUrl = buildUrl(request);
-      const res = await fetch(requestUrl, {
-        method: "GET",
-        headers: {
-          "x-rapidapi-key": apiKey,
-          "x-rapidapi-host": RAPIDAPI_HOST,
-        },
-      });
+      const isMeta = request.path.includes("/instagram") || request.path.includes("/facebook");
 
-      if (res.ok) {
-        const json: any = await res.json().catch(() => ({}));
-        console.log(
-          "[SnapFetch] RapidAPI downloader response",
-          JSON.stringify({ endpoint: request.path, requestUrl, response: json }, null, 2),
-        );
+      try {
+        const res = await fetch(requestUrl, {
+          method: "GET",
+          headers: {
+            "x-rapidapi-key": apiKey,
+            "x-rapidapi-host": RAPIDAPI_HOST,
+          },
+        });
 
-        try {
-          return normalizeDownloadResult(json, data.url);
-        } catch (error: any) {
-          lastError = error?.message || "No downloadable media found in the API response.";
-          if (request !== requests[requests.length - 1]) continue;
-          throw error;
+        if (res.ok) {
+          const json: any = await res.json().catch(() => ({}));
+          if (isMeta) {
+            console.log("Meta API Response:", JSON.stringify({ endpoint: request.path, response: json }, null, 2));
+          } else {
+            console.log(
+              "[SnapFetch] RapidAPI downloader response",
+              JSON.stringify({ endpoint: request.path, requestUrl, response: json }, null, 2),
+            );
+          }
+
+          try {
+            return normalizeDownloadResult(json, data.url);
+          } catch (error: any) {
+            lastError = error?.message || "No downloadable media found in the API response.";
+            if (request !== requests[requests.length - 1]) continue;
+            throw error;
+          }
         }
+
+        const text = await res.text().catch(() => "");
+        lastStatus = res.status;
+        lastError = `Downloader API error (${res.status}). ${text.slice(0, 140)}`;
+        if (isMeta) {
+          console.log("Meta API Response:", JSON.stringify({ endpoint: request.path, status: res.status, response: text.slice(0, 1000) }));
+        } else {
+          console.warn(
+            "[SnapFetch] RapidAPI downloader request failed",
+            JSON.stringify({ endpoint: request.path, requestUrl, status: res.status, response: text.slice(0, 1000) }),
+          );
+        }
+
+        if (![404, 422].includes(res.status) || request === requests[requests.length - 1]) break;
+      } catch (error: any) {
+        if (isMeta) {
+          console.log("Meta API Response: fetch threw", error?.message || String(error));
+        }
+        lastError = error?.message || lastError;
+        if (request === requests[requests.length - 1]) throw error;
       }
-
-      const text = await res.text().catch(() => "");
-      lastStatus = res.status;
-      lastError = `Downloader API error (${res.status}). ${text.slice(0, 140)}`;
-      console.warn(
-        "[SnapFetch] RapidAPI downloader request failed",
-        JSON.stringify({ endpoint: request.path, requestUrl, status: res.status, response: text.slice(0, 1000) }),
-      );
-
-      if (![404, 422].includes(res.status) || request === requests[requests.length - 1]) break;
     }
 
     throw new Error(lastStatus === 429 ? "Rate limit reached. Please try again later." : lastError);
