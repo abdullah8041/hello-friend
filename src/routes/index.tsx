@@ -336,16 +336,9 @@ function Index() {
         </div>
       </section>
 
-      <footer className="border-t border-border/60 px-4 py-8 pb-24 text-center text-xs text-muted-foreground sm:px-6">
+      <footer className="border-t border-border/60 px-4 py-8 text-center text-xs text-muted-foreground sm:px-6">
         © {new Date().getFullYear()} SnapFetch. For personal use only. Respect content creators and platform terms.
       </footer>
-
-      {/* Sticky anchor ad */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/80 px-3 py-2 backdrop-blur-xl">
-        <div className="mx-auto max-w-6xl">
-          <AdSlot label="Advertisement" className="h-14 sm:h-16" compact />
-        </div>
-      </div>
     </div>
   );
 }
