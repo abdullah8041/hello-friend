@@ -287,7 +287,7 @@ function Index() {
         </div>
 
         {/* Square banner ad (300x250) */}
-        <div className="mx-auto mt-10 flex max-w-md justify-center">
+        <div className="mt-12 mb-8 flex w-full justify-center">
           <AdsterraBanner
             adKey="b6201d0496c5f76bab79474d1dc24961"
             width={300}
