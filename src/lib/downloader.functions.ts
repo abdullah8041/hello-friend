@@ -71,6 +71,7 @@ function buildApiRequests(url: string): ApiRequest[] {
 
   if (service === "instagram") {
     return [
+      { path: "/api/instagram/v1/download", query: { url } },
       { path: "/api/instagram/download", query: { url } },
       { path: "/api/instagram", query: { url } },
     ];
