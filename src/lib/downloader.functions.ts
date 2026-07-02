@@ -79,7 +79,7 @@ function buildApiRequests(url: string): ApiRequest[] {
 
   const endpointMap: Record<Exclude<SupportedService, "youtube" | "instagram">, string[]> = {
     tiktok: ["/api/tiktok/download"],
-    facebook: ["/api/facebook/download"],
+    facebook: ["/api/facebook/download", "/api/facebook/v1/download"],
     twitter: ["/api/twitter/download", "/api/x/download"],
   };
 
