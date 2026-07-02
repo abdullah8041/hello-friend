@@ -181,8 +181,8 @@ function Index() {
         </div>
       </header>
 
-      {/* Leaderboard ad (728x90) */}
-      <div className="mx-auto flex max-w-6xl justify-center px-4 pt-4 pb-2 sm:px-6">
+      {/* Leaderboard ad (728x90) — hidden below sm to avoid overflow */}
+      <div className="mx-auto hidden w-full max-w-6xl justify-center px-4 pt-4 pb-2 sm:flex sm:px-6">
         <AdsterraBanner
           adKey="f66a3fd785f423794a373d945ccde044"
           width={728}
