@@ -445,12 +445,13 @@ function ResultCard({
               const IconEl = qualityIconFor(m);
               const primary = i === 0;
               const label = `${m.quality}${m.extension ? " " + m.extension.toUpperCase() : ""}`;
+              const proxyHref = `/api/download?url=${encodeURIComponent(m.url)}&filename=${encodeURIComponent(
+                result.title || "snapfetch",
+              )}&ext=${encodeURIComponent(m.extension || (m.type === "audio" ? "mp3" : "mp4"))}`;
               return (
                 <a
                   key={m.url + i}
-                  href={m.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={proxyHref}
                   download
                   className={`group inline-flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
                     primary
