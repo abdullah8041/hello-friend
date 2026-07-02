@@ -18,6 +18,7 @@ import {
   Link as LinkIcon,
   CheckCircle2,
 } from "lucide-react";
+import { AdsterraBanner } from "@/components/AdsterraBanner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
