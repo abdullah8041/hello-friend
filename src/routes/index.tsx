@@ -18,6 +18,7 @@ import {
   Link as LinkIcon,
   CheckCircle2,
 } from "lucide-react";
+import { AdsterraBanner } from "@/components/AdsterraBanner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -180,9 +181,13 @@ function Index() {
         </div>
       </header>
 
-      {/* Leaderboard ad */}
-      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
-        <AdSlot label="Advertisement" className="h-20 sm:h-24" />
+      {/* Leaderboard ad (728x90) */}
+      <div className="mx-auto flex max-w-6xl justify-center px-4 pt-4 pb-2 sm:px-6">
+        <AdsterraBanner
+          adKey="f66a3fd785f423794a373d945ccde044"
+          width={728}
+          height={90}
+        />
       </div>
 
       {/* Hero */}
@@ -281,9 +286,13 @@ function Index() {
           )}
         </div>
 
-        {/* Square ad below result */}
-        <div className="mx-auto mt-8 max-w-md">
-          <AdSlot label="Advertisement" className="aspect-square sm:aspect-[4/3]" />
+        {/* Square banner ad (300x250) */}
+        <div className="mx-auto mt-10 flex max-w-md justify-center">
+          <AdsterraBanner
+            adKey="b6201d0496c5f76bab79474d1dc24961"
+            width={300}
+            height={250}
+          />
         </div>
       </section>
 
