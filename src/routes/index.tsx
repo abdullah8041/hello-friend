@@ -393,12 +393,42 @@ function SkeletonCard() {
   );
 }
 
-function qualityIconFor(m: { type: string; extension: string; quality: string }) {
-  const isAudio =
+function isAudioMedia(m: { type: string; extension: string; quality: string }) {
+  return (
     m.type === "audio" ||
     /mp3|m4a|aac|ogg|wav/i.test(m.extension) ||
-    /audio|mp3/i.test(m.quality);
-  return isAudio ? Music2 : Video;
+    /audio|mp3/i.test(m.quality)
+  );
+}
+
+function qualityScore(q: string): number {
+  const match = q.match(/(\d{3,4})p/i);
+  if (match) return parseInt(match[1], 10);
+  if (/hd|high/i.test(q)) return 720;
+  if (/sd|medium/i.test(q)) return 480;
+  return 0;
+}
+
+function sanitizeFilename(name: string): string {
+  return (name || "download").replace(/[\\/:*?"<>|]+/g, "_").slice(0, 120).trim() || "download";
+}
+
+async function triggerDownload(downloadUrl: string, filename: string) {
+  try {
+    const response = await fetch(downloadUrl);
+    if (!response.ok) throw new Error("fetch failed");
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(blobUrl);
+  } catch {
+    window.location.href = downloadUrl;
+  }
 }
 
 function ResultCard({
@@ -409,6 +439,29 @@ function ResultCard({
   platformMeta: (typeof PLATFORMS)[number];
 }) {
   const { Icon } = platformMeta;
+  const [busy, setBusy] = useState<string | null>(null);
+  const [selectedOther, setSelectedOther] = useState<string>("");
+
+  const audios = result.medias.filter(isAudioMedia);
+  const videos = result.medias.filter((m) => !isAudioMedia(m));
+  const bestVideo =
+    videos.slice().sort((a, b) => qualityScore(b.quality) - qualityScore(a.quality))[0] ||
+    result.medias[0];
+  const bestAudio = audios[0];
+  const others = result.medias.filter((m) => m !== bestVideo && m !== bestAudio);
+  const safeTitle = sanitizeFilename(result.title);
+
+  const handleDownload = async (
+    m: { url: string; extension: string; quality: string; type: string } | undefined,
+    key: string,
+  ) => {
+    if (!m?.url) return;
+    setBusy(key);
+    const ext = m.extension || (isAudioMedia(m) ? "mp3" : "mp4");
+    await triggerDownload(m.url, `${safeTitle}.${ext}`);
+    setBusy(null);
+  };
+
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card/70 shadow-2xl shadow-indigo-500/10 backdrop-blur-xl">
       <div className="grid gap-4 p-4 sm:grid-cols-[240px_minmax(0,1fr)] sm:p-5">
@@ -441,44 +494,71 @@ function ResultCard({
           )}
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {result.medias.map((m, i) => {
-              const IconEl = qualityIconFor(m);
-              const primary = i === 0;
-              const label = `${m.quality}${m.extension ? " " + m.extension.toUpperCase() : ""}`;
-              return (
-                <a
-                  key={m.url + i}
-                  href={m.url}
-                  download
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`group inline-flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
-                    primary
-                      ? "border-transparent bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-violet-500/40"
-                      : "border-border bg-background/60 hover:bg-accent"
-                  }`}
-                >
-                  <span className="flex items-center gap-2 truncate">
-                    <IconEl className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{label}</span>
-
-                  </span>
-                  {m.size && (
-                    <span
-                      className={`text-xs font-medium ${
-                        primary ? "text-white/80" : "text-muted-foreground"
-                      }`}
-                    >
-                      {m.size}
-                    </span>
-                  )}
-                </a>
-              );
-            })}
+            <button
+              type="button"
+              onClick={() => handleDownload(bestVideo, "video")}
+              disabled={!bestVideo || busy === "video"}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-transparent bg-gradient-to-r from-indigo-500 to-violet-600 px-3 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-violet-500/40 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {busy === "video" ? (
+                <><Spinner /> Preparing…</>
+              ) : (
+                <><Video className="h-4 w-4" /> Download Video (MP4)</>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDownload(bestAudio, "audio")}
+              disabled={!bestAudio || busy === "audio"}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/60 px-3 py-3 text-sm font-bold transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {busy === "audio" ? (
+                <><Spinner /> Preparing…</>
+              ) : (
+                <><Music2 className="h-4 w-4" /> Download Audio (MP3)</>
+              )}
+            </button>
           </div>
+
+          {others.length > 0 && (
+            <div className="mt-3">
+              <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                Other Formats
+              </label>
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                <select
+                  value={selectedOther}
+                  onChange={(e) => setSelectedOther(e.target.value)}
+                  className="min-w-0 rounded-xl border border-border bg-background/60 px-3 py-2.5 text-sm outline-none"
+                >
+                  <option value="">Select a format…</option>
+                  {others.map((m, i) => (
+                    <option key={m.url + i} value={String(i)}>
+                      {`${m.quality}${m.extension ? " · " + m.extension.toUpperCase() : ""}${
+                        m.size ? " · " + m.size : ""
+                      }`}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={selectedOther === "" || busy === "other"}
+                  onClick={() => {
+                    const idx = parseInt(selectedOther, 10);
+                    if (!Number.isNaN(idx)) handleDownload(others[idx], "other");
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-background/60 px-3 py-2.5 text-sm font-semibold transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {busy === "other" ? <Spinner /> : <Download className="h-4 w-4" />}
+                  Get
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
 
