@@ -27,8 +27,8 @@ export const fetchVideo = createServerFn({ method: "POST" })
     const apiKey = process.env.RAPIDAPI_KEY;
     if (!apiKey) throw new Error("Server is missing RAPIDAPI_KEY.");
 
-    const host = "all-media-downloader1.p.rapidapi.com";
-    const res = await fetch(`https://${host}/download`, {
+    const host = "all-media-downloader4.p.rapidapi.com";
+    const res = await fetch(`https://${host}/video`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
