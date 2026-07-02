@@ -89,32 +89,18 @@ function detectPlatform(url: string): Platform | null {
   return null;
 }
 
-type Result = {
-  platform: Platform;
-  title: string;
-  channel: string;
-  duration: string;
-  thumbnail: string;
-};
-
 function Index() {
   const [dark, setDark] = useState(true);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<Result | null>(null);
+  const [result, setResult] = useState<DownloadResult | null>(null);
+  const [platform, setPlatform] = useState<Platform | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const timerRef = useRef<number | null>(null);
+  const fetchVideoFn = useServerFn(fetchVideo);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
-
-  useEffect(
-    () => () => {
-      if (timerRef.current) window.clearTimeout(timerRef.current);
-    },
-    [],
-  );
 
   const detected = useMemo(() => detectPlatform(url), [url]);
 
@@ -127,62 +113,33 @@ function Index() {
     }
   };
 
-  const handleFetch = () => {
+  const handleFetch = async () => {
     setError(null);
     setResult(null);
-    if (!url.trim()) {
+    const trimmed = url.trim();
+    if (!trimmed) {
       setError("Please paste a video link first.");
       return;
     }
-    const platform = detectPlatform(url);
-    if (!platform) {
+    const p = detectPlatform(trimmed);
+    if (!p) {
       setError("Unsupported link. Try YouTube, Instagram, TikTok, Facebook or X.");
       return;
     }
     setLoading(true);
-    timerRef.current = window.setTimeout(() => {
-      setResult({
-        platform,
-        title:
-          platform === "youtube"
-            ? "How I Built a Startup in 30 Days — The Full Journey"
-            : platform === "tiktok"
-            ? "This trick will change your morning ☀️"
-            : platform === "instagram"
-            ? "Reel: Golden hour in Lisbon"
-            : platform === "facebook"
-            ? "Watch: Highlights from the weekend"
-            : "Thread video — must watch",
-        channel:
-          platform === "youtube"
-            ? "Indie Makers"
-            : platform === "tiktok"
-            ? "@dailyhabits"
-            : platform === "instagram"
-            ? "@travel.frames"
-            : platform === "facebook"
-            ? "Global News"
-            : "@techdaily",
-        duration:
-          platform === "tiktok" || platform === "instagram" ? "0:32" : "8:42",
-        thumbnail: `https://images.unsplash.com/photo-${
-          platform === "youtube"
-            ? "1611162617213-7d7a39e9b1d7"
-            : platform === "tiktok"
-            ? "1611605698335-8b1569810432"
-            : platform === "instagram"
-            ? "1519681393784-d120267933ba"
-            : platform === "facebook"
-            ? "1524504388940-b1c1722653e1"
-            : "1611162616305-c69b3fa7fbe0"
-        }?w=800&q=80&auto=format&fit=crop`,
-      });
+    setPlatform(p);
+    try {
+      const data = await fetchVideoFn({ data: { url: trimmed } });
+      setResult(data);
+    } catch (e: any) {
+      setError(e?.message || "Failed to fetch video. Try another link.");
+    } finally {
       setLoading(false);
-    }, 1600);
+    }
   };
 
-  const platformMeta = result
-    ? PLATFORMS.find((p) => p.id === result.platform)!
+  const platformMeta = platform
+    ? PLATFORMS.find((pp) => pp.id === platform)!
     : null;
 
   return (
