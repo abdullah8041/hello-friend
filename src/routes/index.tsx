@@ -393,71 +393,91 @@ function SkeletonCard() {
   );
 }
 
+function qualityIconFor(m: { type: string; extension: string; quality: string }) {
+  const isAudio =
+    m.type === "audio" ||
+    /mp3|m4a|aac|ogg|wav/i.test(m.extension) ||
+    /audio|mp3/i.test(m.quality);
+  return isAudio ? Music2 : Video;
+}
+
 function ResultCard({
   result,
   platformMeta,
 }: {
-  result: Result;
+  result: DownloadResult;
   platformMeta: (typeof PLATFORMS)[number];
 }) {
-  const qualities = [
-    { label: "1080p MP4", size: "48 MB", icon: Video, primary: true },
-    { label: "720p MP4", size: "26 MB", icon: Video },
-    { label: "480p MP4", size: "14 MB", icon: Video },
-    { label: "MP3 Audio", size: "6 MB", icon: Music2 },
-  ];
   const { Icon } = platformMeta;
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card/70 shadow-2xl shadow-indigo-500/10 backdrop-blur-xl">
       <div className="grid gap-4 p-4 sm:grid-cols-[240px_minmax(0,1fr)] sm:p-5">
         <div className="relative aspect-video overflow-hidden rounded-xl bg-muted">
-          <img
-            src={result.thumbnail}
-            alt={result.title}
-            className="h-full w-full object-cover"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-            }}
-          />
+          {result.thumbnail && (
+            <img
+              src={result.thumbnail}
+              alt={result.title}
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          )}
           <span
             className={`absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-gradient-to-r ${platformMeta.color} px-2 py-0.5 text-[10px] font-bold text-white shadow-lg`}
           >
             <Icon className="h-3 w-3" /> {platformMeta.name}
           </span>
-          <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-            {result.duration}
-          </span>
+          {result.duration && (
+            <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              {result.duration}
+            </span>
+          )}
         </div>
         <div className="min-w-0">
-          <h3 className="truncate text-lg font-bold sm:text-xl">{result.title}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">{result.channel}</p>
+          <h3 className="line-clamp-2 text-lg font-bold sm:text-xl">{result.title}</h3>
+          {result.source && (
+            <p className="mt-1 truncate text-sm text-muted-foreground">{result.source}</p>
+          )}
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {qualities.map((q) => (
-              <button
-                key={q.label}
-                className={`group inline-flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
-                  q.primary
-                    ? "border-transparent bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-violet-500/40"
-                    : "border-border bg-background/60 hover:bg-accent"
-                }`}
-              >
-                <span className="flex items-center gap-2 truncate">
-                  <q.icon className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{q.label}</span>
-                </span>
-                <span
-                  className={`text-xs font-medium ${
-                    q.primary ? "text-white/80" : "text-muted-foreground"
+            {result.medias.map((m, i) => {
+              const IconEl = qualityIconFor(m);
+              const primary = i === 0;
+              const label = `${m.quality}${m.extension ? " " + m.extension.toUpperCase() : ""}`;
+              return (
+                <a
+                  key={m.url + i}
+                  href={m.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className={`group inline-flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
+                    primary
+                      ? "border-transparent bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-violet-500/40"
+                      : "border-border bg-background/60 hover:bg-accent"
                   }`}
                 >
-                  {q.size}
-                </span>
-              </button>
-            ))}
+                  <span className="flex items-center gap-2 truncate">
+                    <IconEl className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{label}</span>
+                  </span>
+                  {m.size && (
+                    <span
+                      className={`text-xs font-medium ${
+                        primary ? "text-white/80" : "text-muted-foreground"
+                      }`}
+                    >
+                      {m.size}
+                    </span>
+                  )}
+                </a>
+              );
+            })}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
