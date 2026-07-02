@@ -70,12 +70,25 @@ function buildApiRequests(url: string): ApiRequest[] {
   }
 
   if (service === "instagram") {
-    return [{ path: "/api/instagram/v1/download", query: { url } }];
+    return [
+      { path: "/api/instagram", query: { url } },
+      { path: "/api/ig", query: { url } },
+      { path: "/api/instagram/v1/download", query: { url } },
+      { path: "/api/instagram/download", query: { url } },
+      { path: "/api/download", query: { url } },
+    ];
   }
 
   if (service === "facebook") {
-    return [{ path: "/api/facebook/download", query: { url } }];
+    return [
+      { path: "/api/facebook", query: { url } },
+      { path: "/api/fb", query: { url } },
+      { path: "/api/facebook/download", query: { url } },
+      { path: "/api/facebook/v1/download", query: { url } },
+      { path: "/api/download", query: { url } },
+    ];
   }
+
 
 
   const endpointMap: Record<Exclude<SupportedService, "youtube" | "instagram" | "facebook">, string[]> = {
