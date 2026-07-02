@@ -445,14 +445,13 @@ function ResultCard({
               const IconEl = qualityIconFor(m);
               const primary = i === 0;
               const label = `${m.quality}${m.extension ? " " + m.extension.toUpperCase() : ""}`;
-              const proxyHref = `/api/download?url=${encodeURIComponent(m.url)}&filename=${encodeURIComponent(
-                result.title || "snapfetch",
-              )}&ext=${encodeURIComponent(m.extension || (m.type === "audio" ? "mp3" : "mp4"))}`;
               return (
                 <a
                   key={m.url + i}
-                  href={proxyHref}
+                  href={m.url}
                   download
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className={`group inline-flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
                     primary
                       ? "border-transparent bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-violet-500/40"
@@ -462,6 +461,7 @@ function ResultCard({
                   <span className="flex items-center gap-2 truncate">
                     <IconEl className="h-4 w-4 shrink-0" />
                     <span className="truncate">{label}</span>
+
                   </span>
                   {m.size && (
                     <span
