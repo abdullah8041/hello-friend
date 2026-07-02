@@ -16,8 +16,34 @@ export type DownloadResult = {
   medias: DownloadMedia[];
 };
 
-const RAPIDAPI_HOST = "fastsaver-instagram-tiktok-pinterest-media-downloader.p.rapidapi.com";
-const RAPIDAPI_BASE_URL = `https://${RAPIDAPI_HOST}`;
+const AMD_HOST = "all-media-downloader4.p.rapidapi.com";
+const FASTSAVER_HOST = "fastsaver-instagram-tiktok-pinterest-media-downloader.p.rapidapi.com";
+
+type Platform = "youtube" | "twitter" | "instagram" | "facebook" | "tiktok" | "unknown";
+
+function detectPlatform(url: string): Platform {
+  const u = url.toLowerCase();
+  if (u.includes("youtube.com") || u.includes("youtu.be")) return "youtube";
+  if (u.includes("twitter.com") || u.includes("x.com") || u.includes("t.co")) return "twitter";
+  if (u.includes("instagram.com")) return "instagram";
+  if (u.includes("facebook.com") || u.includes("fb.watch") || u.includes("fb.com")) return "facebook";
+  if (u.includes("tiktok.com") || u.includes("vm.tiktok.com")) return "tiktok";
+  return "unknown";
+}
+
+function extractYoutubeId(url: string): string | undefined {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1).split("/")[0] || undefined;
+    const v = u.searchParams.get("v");
+    if (v) return v;
+    const parts = u.pathname.split("/").filter(Boolean);
+    const idx = parts.findIndex((p) => ["shorts", "embed", "v"].includes(p));
+    if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+  } catch {}
+  const m = url.match(/[?&]v=([^&#]+)/);
+  return m?.[1];
+}
 
 function looksLikeMediaUrl(value: unknown): value is string {
   return typeof value === "string" && /^https?:\/\//i.test(value.trim());
@@ -125,6 +151,26 @@ function normalizeDownloadResult(json: any, originalUrl: string): DownloadResult
   return { title, thumbnail, source, duration, medias };
 }
 
+async function callApi(endpoint: string, host: string, apiKey: string) {
+  const res = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "x-rapidapi-host": host,
+      "x-rapidapi-key": apiKey,
+    },
+  });
+  const text = await res.text();
+  let json: any = {};
+  try { json = JSON.parse(text); } catch {}
+  console.log("[SnapFetch] API call", { endpoint, host, status: res.status, body: text.slice(0, 500) });
+  if (!res.ok) {
+    if (res.status === 429) throw new Error("Rate limit reached. Please try again later.");
+    throw new Error(`Downloader API error (${res.status}). ${text.slice(0, 140)}`);
+  }
+  return json;
+}
+
 export const fetchVideo = createServerFn({ method: "POST" })
   .inputValidator((input: { url: string }) => {
     if (!input || typeof input.url !== "string" || !input.url.trim()) {
@@ -136,26 +182,45 @@ export const fetchVideo = createServerFn({ method: "POST" })
     const apiKey = process.env.RAPIDAPI_KEY;
     if (!apiKey) throw new Error("Server is missing RAPIDAPI_KEY.");
 
-    const endpoint = `${RAPIDAPI_BASE_URL}/fetch?url=${encodeURIComponent(data.url)}`;
+    const platform = detectPlatform(data.url);
+    const encoded = encodeURIComponent(data.url);
 
-    const res = await fetch(endpoint, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "x-rapidapi-host": RAPIDAPI_HOST,
-        "x-rapidapi-key": apiKey,
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      console.warn("[SnapFetch] FastSaver API error", { status: res.status, body: text.slice(0, 1000) });
-      if (res.status === 429) throw new Error("Rate limit reached. Please try again later.");
-      throw new Error(`Downloader API error (${res.status}). ${text.slice(0, 140)}`);
+    // YouTube & Twitter — use the working all-media-downloader4 API
+    if (platform === "youtube") {
+      const videoId = extractYoutubeId(data.url);
+      if (!videoId) throw new Error("Could not extract YouTube video ID from that URL.");
+      const json = await callApi(
+        `https://${AMD_HOST}/api/youtube/download?id=${videoId}`,
+        AMD_HOST,
+        apiKey,
+      );
+      return normalizeDownloadResult(json, data.url);
     }
 
-    const json: any = await res.json().catch(() => ({}));
-    console.log("[SnapFetch] FastSaver API response", JSON.stringify(json, null, 2));
+    if (platform === "twitter") {
+      const json = await callApi(
+        `https://${AMD_HOST}/api/twitter/download?url=${encoded}`,
+        AMD_HOST,
+        apiKey,
+      );
+      return normalizeDownloadResult(json, data.url);
+    }
 
+    // Instagram, Facebook, TikTok — use FastSaver universal endpoint
+    if (platform === "instagram" || platform === "facebook" || platform === "tiktok") {
+      const json = await callApi(
+        `https://${FASTSAVER_HOST}/fetch?url=${encoded}`,
+        FASTSAVER_HOST,
+        apiKey,
+      );
+      return normalizeDownloadResult(json, data.url);
+    }
+
+    // Unknown — try FastSaver universal as best-effort fallback
+    const json = await callApi(
+      `https://${FASTSAVER_HOST}/fetch?url=${encoded}`,
+      FASTSAVER_HOST,
+      apiKey,
+    );
     return normalizeDownloadResult(json, data.url);
   });
